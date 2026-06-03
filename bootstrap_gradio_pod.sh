@@ -27,8 +27,20 @@ import sys
 print(f"cp{sys.version_info.major}{sys.version_info.minor}")
 PY
 )"
-pip install \
-  "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3+cu128torch2.8-${PY_TAG}-${PY_TAG}-linux_x86_64.whl"
+FA_WHEEL="flash_attn-2.8.3+cu128torch2.8-${PY_TAG}-${PY_TAG}-linux_x86_64.whl"
+FA_URL="https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/${FA_WHEEL}"
+aria2c \
+  --continue=true \
+  --max-connection-per-server=8 \
+  --split=8 \
+  --min-split-size=1M \
+  --retry-wait=5 \
+  --max-tries=8 \
+  --timeout=60 \
+  --dir=/tmp \
+  --out="$FA_WHEEL" \
+  "$FA_URL"
+pip install "/tmp/$FA_WHEEL"
 
 if [ ! -d "$BERNINI_DIR/.git" ]; then
   rm -rf "$BERNINI_DIR"
