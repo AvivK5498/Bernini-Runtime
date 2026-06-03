@@ -58,5 +58,4 @@ else
 fi
 pip install -e "$BERNINI_RUNTIME_DIR"
 
-python "$BERNINI_RUNTIME_DIR/scripts/prefetch_model.py"
 exec python -m bernini_runtime.handler

@@ -5,6 +5,8 @@ import subprocess
 import time
 from pathlib import Path
 
+from huggingface_hub import snapshot_download
+
 from .casefile import build_case_file
 from .config import JobSpec, RuntimeSettings, VIDEO_TASKS
 from .media import download_file, safe_filename, upload_to_tmpfiles
@@ -36,6 +38,7 @@ def run_job(job: JobSpec, settings: RuntimeSettings) -> dict:
     case_path = job_dir / "case.json"
     case = build_case_file(job, media_dir=media_dir, output_path=output_path, case_path=case_path)
 
+    _ensure_model(settings)
     command = _build_command(job, settings, case_path)
     proc = subprocess.run(
         command,
@@ -74,6 +77,18 @@ def run_job(job: JobSpec, settings: RuntimeSettings) -> dict:
         "log_path": str(log_path),
         "elapsed_s": round(time.time() - started, 2),
     }
+
+
+def _ensure_model(settings: RuntimeSettings) -> None:
+    if (settings.model_dir / "model_index.json").exists():
+        return
+    settings.model_dir.parent.mkdir(parents=True, exist_ok=True)
+    snapshot_download(
+        repo_id="ByteDance/Bernini-R-Diffusers",
+        local_dir=str(settings.model_dir),
+        local_dir_use_symlinks=False,
+        resume_download=True,
+    )
 
 
 def _build_command(job: JobSpec, settings: RuntimeSettings, case_path: Path) -> list[str]:
