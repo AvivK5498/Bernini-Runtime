@@ -14,21 +14,31 @@ export PATH="/opt/venv/bin:$PATH"
 
 apt-get update
 apt-get install -y --no-install-recommends \
-  python3.12 python3.12-dev python3.12-venv python3-pip \
   build-essential git git-lfs curl wget aria2 ffmpeg libgl1 libglib2.0-0 \
   ninja-build ca-certificates
 git lfs install
 
-if [ ! -d /opt/venv ]; then
-  python3.12 -m venv /opt/venv
+if ! command -v python >/dev/null 2>&1; then
+  apt-get install -y --no-install-recommends python3.12 python3.12-dev python3.12-venv python3-pip
+  if [ ! -d /opt/venv ]; then
+    python3.12 -m venv /opt/venv
+  fi
 fi
 
 python -m pip install --upgrade pip setuptools wheel packaging
+python - <<'PY' || pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+import torch
+assert torch.__version__.startswith("2.8.0")
+assert torch.version.cuda and torch.version.cuda.startswith("12.8")
+PY
+
+PY_TAG="$(python - <<'PY'
+import sys
+print(f"cp{sys.version_info.major}{sys.version_info.minor}")
+PY
+)"
 pip install \
-  torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
-  --index-url https://download.pytorch.org/whl/cu128
-pip install \
-  https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3+cu128torch2.8-cp312-cp312-linux_x86_64.whl
+  "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.7.16/flash_attn-2.8.3+cu128torch2.8-${PY_TAG}-${PY_TAG}-linux_x86_64.whl"
 
 if [ ! -d "$BERNINI_DIR/.git" ]; then
   rm -rf "$BERNINI_DIR"
@@ -50,4 +60,3 @@ pip install -e "$BERNINI_RUNTIME_DIR"
 
 python "$BERNINI_RUNTIME_DIR/scripts/prefetch_model.py"
 exec python -m bernini_runtime.handler
-

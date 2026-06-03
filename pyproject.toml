@@ -2,7 +2,7 @@
 name = "bernini-runtime"
 version = "0.1.0"
 description = "Runpod serverless runtime for ByteDance Bernini-R"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
   "requests>=2.32.0",
   "runpod>=1.7.0",
@@ -19,4 +19,3 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
