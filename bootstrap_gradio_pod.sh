@@ -6,8 +6,10 @@ export PYTHONUNBUFFERED=1
 export PIP_PREFER_BINARY=1
 export HF_XET_HIGH_PERFORMANCE=1
 export BERNINI_DIR="${BERNINI_DIR:-/opt/Bernini}"
-export BERNINI_MODEL_DIR="${BERNINI_MODEL_DIR:-/models/Bernini-R-Diffusers}"
+export BERNINI_MODEL_DIR="${BERNINI_MODEL_DIR:-/workspace/models/Bernini-R-Diffusers}"
 export BERNINI_GRADIO_PORT="${BERNINI_GRADIO_PORT:-7860}"
+export BERNINI_NUM_GPUS="${BERNINI_NUM_GPUS:-1}"
+export HF_HOME="${HF_HOME:-/workspace/.hf-cache}"
 
 apt-get update
 apt-get install -y --no-install-recommends \
@@ -60,13 +62,25 @@ pip install -r /tmp/bernini-requirements.txt
 pip install --upgrade "huggingface_hub[hf_xet]"
 pip install -e "$BERNINI_DIR"
 
+if [ "$BERNINI_NUM_GPUS" -gt 1 ]; then
+  pip install --no-deps git+https://github.com/ByteDance-Seed/VeOmni.git@v0.1.10
+fi
+
 if [ ! -f "$BERNINI_MODEL_DIR/model_index.json" ]; then
   mkdir -p "$BERNINI_MODEL_DIR"
   hf download ByteDance/Bernini-R-Diffusers --local-dir "$BERNINI_MODEL_DIR"
 fi
 
 cd "$BERNINI_DIR"
+if [ "$BERNINI_NUM_GPUS" -gt 1 ]; then
+  exec torchrun --nproc-per-node "$BERNINI_NUM_GPUS" gradio_demo.py \
+    --ulysses "$BERNINI_NUM_GPUS" \
+    --config "$BERNINI_MODEL_DIR" \
+    --port "$BERNINI_GRADIO_PORT" \
+    --save_dir /workspace/bernini-gradio-outputs
+fi
+
 exec python gradio_demo.py \
-  --config "$BERNINI_MODEL_DIR" \
-  --port "$BERNINI_GRADIO_PORT" \
-  --save_dir /workspace/bernini-gradio-outputs
+    --config "$BERNINI_MODEL_DIR" \
+    --port "$BERNINI_GRADIO_PORT" \
+    --save_dir /workspace/bernini-gradio-outputs
