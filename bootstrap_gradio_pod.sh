@@ -12,8 +12,16 @@ export BERNINI_GRADIO_PORT="${BERNINI_GRADIO_PORT:-7860}"
 apt-get update
 apt-get install -y --no-install-recommends \
   build-essential git git-lfs curl wget aria2 ffmpeg libgl1 libglib2.0-0 \
-  ninja-build ca-certificates
+  ninja-build ca-certificates openssh-server
 git lfs install
+
+mkdir -p /run/sshd /root/.ssh
+if [ -n "${PUBLIC_KEY:-}" ]; then
+  printf '%s\n' "$PUBLIC_KEY" >> /root/.ssh/authorized_keys
+  chmod 700 /root/.ssh
+  chmod 600 /root/.ssh/authorized_keys
+fi
+/usr/sbin/sshd
 
 python -m pip install --upgrade pip setuptools wheel packaging
 python - <<'PY' || pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
